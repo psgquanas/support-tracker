@@ -1,58 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Support Activity Tracker
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel web application that helps an applications support team track their daily activities, record who updated what and when, and hand over pending work cleanly between shifts.
 
-## About Laravel
+Built as the Npontu Technologies Platforms Developer assignment.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Live URL: https://YOUR-APP.up.railway.app
+Demo login: demo@example.com / YourDemoPassword
+Repository: https://github.com/YOUR-USERNAME/support-tracker
+Requirements and how they are met
+#	Requirement	Implementation
+1	Input activities such as "Daily SMS count vs SMS count from logs"	New Activity form with title, date, description, system count and log count. A mismatch warning shows the difference between the two counts.
+2	Update status to done or pending, with a remark	Each activity has an inline update form (status + remark) on the handover page.
+3	Capture bio details of the person updating, and the time	Every update stores the logged-in user and a timestamp. Staff ID and phone are collected at registration and shown beside each update.
+4	Daily view of all activities and their updates	Handover page: pick any date and see every activity with a timeline of updates (status, person, time, remark). Activities still pending from earlier days appear in a highlighted carry-over banner.
+5	Reporting view for custom durations	Reports page: choose a from/to date and optional status filter, see summary stats (total, done, pending, mismatches) and the full update history. Results can be exported to CSV.
+6	User authentication	Laravel Breeze: registration, login, logout. All application pages sit behind the auth middleware.
+Tech stack
+Laravel (PHP 8.2+)
+MySQL
+Blade templates with Tailwind CSS (via Vite)
+Laravel Breeze for authentication
+Deployed on Railway
+Data model
+users: name, email, password, staff_id, phone, role
+activities: title, description, activity_date (indexed), system_count, log_count, current status, created_by
+activity_updates: activity_id, user_id, status, remark, created_at
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Each status change adds a row to activity_updates and refreshes the current status on the activity. History is never overwritten.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Design decisions and non-functional requirements
 
-## Learning Laravel
+Auditability Updates are append-only. Every change records who made it and when, so the full history of any activity can always be reconstructed. The status change and the history row are written in a single database transaction so they cannot get out of sync.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Security
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Passwords are hashed (bcrypt) by Laravel
+CSRF protection on every form
+Server-side validation on all inputs (types, lengths, allowed status values, date ranges)
+Eloquent query bindings prevent SQL injection
+Blade escapes output by default, which protects against XSS
+Secrets live in environment variables, never in the repository
+APP_DEBUG=false in production
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+Performance and scalability
 
-## Agentic Development
+activity_date and created_at are indexed because every view and report filters on them
+Eager loading (with()) avoids N+1 queries on the handover and report pages
+Report results are paginated
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Usability
 
-```bash
-composer require laravel/boost --dev
+The handover page is built around the real use case: the next person on shift can immediately see what is pending, who touched it last, and the remark they left
+Pending items from earlier days are surfaced automatically so nothing is forgotten
+Colour-coded status badges and a timeline layout
+Responsive layout that works on mobile
 
-php artisan boost:install
-```
+Maintainability
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Standard Laravel structure (migrations, models, controllers, Blade views)
+Reusable Blade partial for the activity card, shared components for the layout
+Relationships are defined on the models (Activity::updates(), ActivityUpdate::user())
 
-## Contributing
+Reliability
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Timezone set to Africa/Accra so recorded times match the team's local time
+Logging goes to stderr in production so errors are visible in the host's logs
+Running locally
 
-## Code of Conduct
+Requirements: PHP 8.2+, Composer, Node.js, MySQL.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+bash
+git clone https://github.com/YOUR-USERNAME/support-tracker.git
+cd support-tracker
 
-## Security Vulnerabilities
+composer install
+npm install
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+cp .env.example .env
+php artisan key:generate
 
-## License
+Create a MySQL database, then set these in .env:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=support_tracker
+DB_USERNAME=root
+DB_PASSWORD=
+
+Then:
+
+bash
+php artisan migrate
+npm run dev          # in one terminal
+php artisan serve    # in another
+
+Open http://127.0.0.1:8000 and register an account.
+
+Deployment (Railway)
+Push the repository to GitHub
+Create a Railway project from the repo and add a MySQL database
+Set environment variables (APP_KEY, APP_ENV=production, APP_DEBUG=false, APP_URL, and the DB_* values linked to the MySQL service)
+Set the pre-deploy command to php artisan migrate --force
+Generate a public domain
+Routes
+Method	URL	Purpose
+GET	/activities	Daily handover view (?date=YYYY-MM-DD)
+GET	/activities/create	New activity form
+POST	/activities	Save a new activity
+POST	/activities/{activity}/updates	Add a status update with remark
+GET	/reports	Report by date range and status
+GET	/reports/export	CSV export of the filtered report
+Possible improvements
+Role-based access (admin vs support staff) using the existing role column
+Recurring activity templates so daily checks are created automatically
+Email or in-app notification when a pending item is handed over
+Automated tests for the update and report logic
